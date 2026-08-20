@@ -1,6 +1,18 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from 'mongoose'
 import { TASK_PRIORITIES, TASK_STATUSES } from '../utils/types'
 
+const attachmentSchema = new Schema(
+  {
+    publicId: { type: String, required: true },
+    url: { type: String, required: true },
+    originalName: { type: String, required: true },
+    mimeType: { type: String, required: true },
+    size: { type: Number, required: true },
+    resourceType: { type: String, required: true, default: 'image' },
+  },
+  { _id: true },
+)
+
 const taskSchema = new Schema(
   {
     title: {
@@ -40,6 +52,10 @@ const taskSchema = new Schema(
       required: true,
       index: true,
     },
+    attachments: {
+      type: [attachmentSchema],
+      default: [],
+    },
   },
   {
     timestamps: true,
@@ -50,6 +66,19 @@ const taskSchema = new Schema(
         ret.id = String(ret._id)
         ret.userId = String(ret.user)
         delete ret._id
+
+        const attachments = ret.attachments
+        if (Array.isArray(attachments)) {
+          ret.attachments = attachments.map((item) => {
+            const attachment = item as Record<string, unknown>
+            return {
+              ...attachment,
+              id: String(attachment._id ?? attachment.id),
+              _id: undefined,
+            }
+          })
+        }
+
         return ret
       },
     },

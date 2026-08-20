@@ -62,8 +62,21 @@ export const taskIdParamsSchema = z.object({
   id: z.string().regex(/^[a-fA-F0-9]{24}$/, 'Invalid task id'),
 })
 
+export const taskAttachmentParamsSchema = z.object({
+  id: z.string().regex(/^[a-fA-F0-9]{24}$/, 'Invalid task id'),
+  attachmentId: z.string().regex(/^[a-fA-F0-9]{24}$/, 'Invalid attachment id'),
+})
+
 export const listTasksQuerySchema = z.object({
   search: z.string().trim().optional(),
   status: z.preprocess(emptyToUndefined, statusSchema.optional()),
   priority: z.preprocess(emptyToUndefined, prioritySchema.optional()),
+  page: z.preprocess(
+    (value) => (value === '' || value === undefined ? 1 : value),
+    z.coerce.number().int().min(1).default(1),
+  ),
+  limit: z.preprocess(
+    (value) => (value === '' || value === undefined ? 6 : value),
+    z.coerce.number().int().min(1).max(50).default(6),
+  ),
 })

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CalendarIcon, PencilIcon, Trash2Icon } from 'lucide-react'
+import { CalendarIcon, PaperclipIcon, PencilIcon, Trash2Icon } from 'lucide-react'
 import type { Task, TaskPriority, TaskStatus } from '@/types/task'
 import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from '@/types/task'
 import { formatDate } from '@/utils/date'
@@ -95,9 +95,17 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
             {TASK_PRIORITY_LABELS[task.priority]}
           </Badge>
         </CardContent>
-        <CardFooter className="gap-2 text-muted-foreground">
-          <CalendarIcon className="size-3.5" />
-          <span>Due {formatDate(task.dueDate)}</span>
+        <CardFooter className="flex-wrap gap-2 text-muted-foreground">
+          <span className="inline-flex items-center gap-2">
+            <CalendarIcon className="size-3.5" />
+            Due {formatDate(task.dueDate)}
+          </span>
+          {task.attachments?.length > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <PaperclipIcon className="size-3.5" />
+              {task.attachments.length}
+            </span>
+          )}
         </CardFooter>
       </Card>
 

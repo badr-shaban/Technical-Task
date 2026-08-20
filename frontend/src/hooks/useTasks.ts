@@ -1,32 +1,63 @@
 import { useCallback, useEffect, useState } from 'react'
 import type {
   CreateTaskInput,
+  PaginationMeta,
   Task,
   TaskPriority,
   TaskStatus,
   UpdateTaskInput,
 } from '@/types/task'
+import { TASK_PAGE_SIZE } from '@/types/task'
 import { getErrorMessage } from '@/services/api'
 import * as taskService from '@/services/taskService'
 
+const emptyPagination: PaginationMeta = {
+  page: 1,
+  limit: TASK_PAGE_SIZE,
+  total: 0,
+  totalPages: 1,
+}
+
 export function useTasks() {
-  const [search, setSearch] = useState('')
+  const [search, setSearchValue] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [status, setStatus] = useState<TaskStatus | 'all'>('all')
-  const [priority, setPriority] = useState<TaskPriority | 'all'>('all')
+  const [status, setStatusValue] = useState<TaskStatus | 'all'>('all')
+  const [priority, setPriorityValue] = useState<TaskPriority | 'all'>('all')
+  const [page, setPage] = useState(1)
   const [tasks, setTasks] = useState<Task[]>([])
+  const [pagination, setPagination] = useState<PaginationMeta>(emptyPagination)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      setDebouncedSearch(search.trim())
+      const nextSearch = search.trim()
+      if (nextSearch === debouncedSearch) {
+        return
+      }
+
+      setDebouncedSearch(nextSearch)
+      setPage(1)
     }, 300)
 
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [search])
+  }, [search, debouncedSearch])
+
+  const setSearch = useCallback((value: string) => {
+    setSearchValue(value)
+  }, [])
+
+  const setStatus = useCallback((value: TaskStatus | 'all') => {
+    setStatusValue(value)
+    setPage(1)
+  }, [])
+
+  const setPriority = useCallback((value: TaskPriority | 'all') => {
+    setPriorityValue(value)
+    setPage(1)
+  }, [])
 
   const refresh = useCallback(
     async (showLoading = false) => {
@@ -36,19 +67,22 @@ export function useTasks() {
       setError(null)
 
       try {
-        const data = await taskService.getTasks({
+        const result = await taskService.getTasks({
           search: debouncedSearch,
           status,
           priority,
+          page,
+          limit: TASK_PAGE_SIZE,
         })
-        setTasks(data)
+        setTasks(result.tasks)
+        setPagination(result.pagination)
       } catch (caught) {
         setError(getErrorMessage(caught))
       } finally {
         setLoading(false)
       }
     },
-    [debouncedSearch, status, priority],
+    [debouncedSearch, status, priority, page],
   )
 
   useEffect(() => {
@@ -59,13 +93,23 @@ export function useTasks() {
         search: debouncedSearch,
         status,
         priority,
+        page,
+        limit: TASK_PAGE_SIZE,
       })
-      .then((data) => {
-        if (!cancelled) {
-          setTasks(data)
-          setError(null)
-          setLoading(false)
+      .then((result) => {
+        if (cancelled) {
+          return
         }
+
+        if (page > result.pagination.totalPages && result.pagination.total > 0) {
+          setPage(result.pagination.totalPages)
+          return
+        }
+
+        setTasks(result.tasks)
+        setPagination(result.pagination)
+        setError(null)
+        setLoading(false)
       })
       .catch((caught: unknown) => {
         if (!cancelled) {
@@ -77,7 +121,7 @@ export function useTasks() {
     return () => {
       cancelled = true
     }
-  }, [debouncedSearch, status, priority])
+  }, [debouncedSearch, status, priority, page])
 
   const createTask = useCallback(
     async (input: CreateTaskInput) => {
@@ -107,14 +151,17 @@ export function useTasks() {
 
   return {
     tasks,
+    pagination,
     loading,
     error,
     search,
     status,
     priority,
+    page,
     setSearch,
     setStatus,
     setPriority,
+    setPage,
     refresh,
     createTask,
     updateTask,

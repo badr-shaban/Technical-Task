@@ -7,6 +7,7 @@ import { useTasks } from '@/hooks/useTasks'
 import { getErrorMessage } from '@/services/api'
 import { TaskFormDialog } from '@/components/tasks/TaskFormDialog'
 import { TaskGrid } from '@/components/tasks/TaskGrid'
+import { TaskPagination } from '@/components/tasks/TaskPagination'
 import { TaskToolbar } from '@/components/tasks/TaskToolbar'
 import { Button } from '@/components/ui/button'
 
@@ -14,6 +15,7 @@ export function Dashboard() {
   const { user } = useAuth()
   const {
     tasks,
+    pagination,
     loading,
     error,
     search,
@@ -22,6 +24,7 @@ export function Dashboard() {
     setSearch,
     setStatus,
     setPriority,
+    setPage,
     refresh,
     createTask,
     updateTask,
@@ -109,6 +112,10 @@ export function Dashboard() {
         onEdit={openEdit}
         onDelete={handleDelete}
       />
+
+      {!loading && !error && (
+        <TaskPagination pagination={pagination} onPageChange={setPage} />
+      )}
 
       <TaskFormDialog
         open={dialogOpen}

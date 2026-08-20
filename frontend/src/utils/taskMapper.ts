@@ -1,4 +1,13 @@
-import type { Task, TaskPriority, TaskStatus } from '@/types/task'
+import type { Task, TaskAttachment, TaskPriority, TaskStatus } from '@/types/task'
+
+export interface ApiAttachment {
+  id?: string
+  _id?: string
+  url: string
+  originalName: string
+  mimeType: string
+  size: number
+}
 
 export interface ApiTask {
   id: string
@@ -9,6 +18,7 @@ export interface ApiTask {
   dueDate: string
   userId?: string
   user?: string
+  attachments?: ApiAttachment[]
 }
 
 const STATUS_FROM_API: Record<string, TaskStatus> = {
@@ -29,6 +39,16 @@ const PRIORITY_FROM_API: Record<string, TaskPriority> = {
   high: 'high',
 }
 
+function mapAttachment(raw: ApiAttachment): TaskAttachment {
+  return {
+    id: String(raw.id ?? raw._id ?? ''),
+    url: raw.url,
+    originalName: raw.originalName,
+    mimeType: raw.mimeType,
+    size: raw.size,
+  }
+}
+
 export function mapTask(raw: ApiTask): Task {
   return {
     id: raw.id,
@@ -38,5 +58,6 @@ export function mapTask(raw: ApiTask): Task {
     priority: PRIORITY_FROM_API[raw.priority] ?? 'medium',
     dueDate: raw.dueDate,
     userId: raw.userId ?? String(raw.user ?? ''),
+    attachments: (raw.attachments ?? []).map(mapAttachment),
   }
 }

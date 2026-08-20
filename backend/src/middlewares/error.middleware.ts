@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express'
 import { ZodError } from 'zod'
 import mongoose from 'mongoose'
+import multer from 'multer'
 import { env } from '../config/env'
 import { AppError } from '../utils/AppError'
 
@@ -55,6 +56,21 @@ export function errorMiddleware(
     res.status(400).json({
       success: false,
       message: 'Invalid ID format',
+    })
+    return
+  }
+
+  if (error instanceof multer.MulterError) {
+    const message =
+      error.code === 'LIMIT_FILE_SIZE'
+        ? 'Each file must be 5MB or smaller'
+        : error.code === 'LIMIT_FILE_COUNT'
+          ? 'Too many files in this upload'
+          : error.message
+
+    res.status(400).json({
+      success: false,
+      message,
     })
     return
   }
