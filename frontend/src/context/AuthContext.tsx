@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { LoginPayload, RegisterPayload, User } from '@/types/auth'
-import { clearSession, getAuthToken, USER_STORAGE_KEY } from '@/services/api'
+import { clearSession, getAuthToken, USER_STORAGE_KEY, ApiError } from '@/services/api'
 import * as authService from '@/services/authService'
 
 interface AuthContextValue {
@@ -59,10 +59,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(currentUser)
         }
       })
-      .catch(() => {
-        clearSession()
+      .catch((error: unknown) => {
+        if (error instanceof ApiError && error.status === 401) {
+          clearSession()
+          if (!cancelled) {
+            setUser(null)
+          }
+          return
+        }
+
         if (!cancelled) {
-          setUser(null)
+          setUser(readStoredUser())
         }
       })
       .finally(() => {

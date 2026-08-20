@@ -4,38 +4,47 @@ import type {
   TaskFilters,
   UpdateTaskInput,
 } from '@/types/task'
-import { delay, getAuthToken } from '@/services/api'
-import {
-  createTaskRecord,
-  deleteTaskRecord,
-  listTasks,
-  requireUser,
-  updateTaskRecord,
-} from '@/services/mockStore'
+import { api, type ApiResponse } from '@/services/api'
+import { mapTask, type ApiTask } from '@/utils/taskMapper'
+
+function toQuery(filters: TaskFilters): Record<string, string> {
+  const params: Record<string, string> = {}
+
+  if (filters.search?.trim()) {
+    params.search = filters.search.trim()
+  }
+
+  if (filters.status && filters.status !== 'all') {
+    params.status = filters.status
+  }
+
+  if (filters.priority && filters.priority !== 'all') {
+    params.priority = filters.priority
+  }
+
+  return params
+}
 
 export async function getTasks(filters: TaskFilters = {}): Promise<Task[]> {
-  await delay()
-  const user = requireUser(getAuthToken())
-  return listTasks(user.id, filters)
+  const { data } = await api.get<ApiResponse<ApiTask[]>>('/tasks', {
+    params: toQuery(filters),
+  })
+  return data.data.map(mapTask)
 }
 
 export async function createTask(input: CreateTaskInput): Promise<Task> {
-  await delay()
-  const user = requireUser(getAuthToken())
-  return createTaskRecord(user.id, input)
+  const { data } = await api.post<ApiResponse<ApiTask>>('/tasks', input)
+  return mapTask(data.data)
 }
 
 export async function updateTask(
   taskId: string,
   input: UpdateTaskInput,
 ): Promise<Task> {
-  await delay()
-  const user = requireUser(getAuthToken())
-  return updateTaskRecord(user.id, taskId, input)
+  const { data } = await api.put<ApiResponse<ApiTask>>(`/tasks/${taskId}`, input)
+  return mapTask(data.data)
 }
 
 export async function deleteTask(taskId: string): Promise<void> {
-  await delay()
-  const user = requireUser(getAuthToken())
-  deleteTaskRecord(user.id, taskId)
+  await api.delete(`/tasks/${taskId}`)
 }

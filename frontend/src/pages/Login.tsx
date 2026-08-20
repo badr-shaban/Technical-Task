@@ -25,12 +25,8 @@ export function Login() {
               Use your email and password to access your tasks.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <LoginForm />
-            <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-              Demo account: <span className="font-medium">demo@taskflow.app</span> /{' '}
-              <span className="font-medium">password123</span>
-            </p>
           </CardContent>
         </Card>
       </div>

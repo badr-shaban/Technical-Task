@@ -1,11 +1,5 @@
 import type { AuthResponse, LoginPayload, RegisterPayload, User } from '@/types/auth'
-import {
-  clearSession,
-  delay,
-  getAuthToken,
-  persistSession,
-} from '@/services/api'
-import { loginUser, registerUser, requireUser } from '@/services/mockStore'
+import { api, clearSession, persistSession, USER_STORAGE_KEY, type ApiResponse } from '@/services/api'
 
 function storeSession(response: AuthResponse): AuthResponse {
   persistSession(response.token, JSON.stringify(response.user))
@@ -13,21 +7,21 @@ function storeSession(response: AuthResponse): AuthResponse {
 }
 
 export async function login(payload: LoginPayload): Promise<AuthResponse> {
-  await delay()
-  return storeSession(loginUser(payload.email, payload.password))
+  const { data } = await api.post<ApiResponse<AuthResponse>>('/auth/login', payload)
+  return storeSession(data.data)
 }
 
 export async function register(payload: RegisterPayload): Promise<AuthResponse> {
-  await delay()
-  return storeSession(registerUser(payload))
+  const { data } = await api.post<ApiResponse<AuthResponse>>('/auth/register', payload)
+  return storeSession(data.data)
 }
 
 export async function getMe(): Promise<User> {
-  await delay(200)
-  return requireUser(getAuthToken())
+  const { data } = await api.get<ApiResponse<User>>('/auth/me')
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.data))
+  return data.data
 }
 
 export async function logout(): Promise<void> {
-  await delay(150)
   clearSession()
 }

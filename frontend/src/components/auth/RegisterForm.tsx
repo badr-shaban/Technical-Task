@@ -15,7 +15,11 @@ const registerSchema = z
   .object({
     name: z.string().trim().min(2, 'Name must be at least 2 characters'),
     email: z.email('Enter a valid email'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Za-z]/, 'Password must include a letter')
+      .regex(/\d/, 'Password must include a number'),
     confirmPassword: z.string().min(1, 'Confirm your password'),
   })
   .refine((values) => values.password === values.confirmPassword, {
@@ -92,7 +96,7 @@ export function RegisterForm() {
             id="password"
             type="password"
             autoComplete="new-password"
-            placeholder="At least 8 characters"
+            placeholder="8+ characters, letter and number"
             aria-invalid={!!errors.password}
             {...register('password')}
           />

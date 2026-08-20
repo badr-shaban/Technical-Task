@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { isAxiosError } from 'axios'
 
 export const TOKEN_STORAGE_KEY = 'taskflow.token'
 export const USER_STORAGE_KEY = 'taskflow.user'
@@ -13,8 +13,14 @@ export class ApiError extends Error {
   }
 }
 
+export interface ApiResponse<T> {
+  success: boolean
+  message?: string
+  data: T
+}
+
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL ?? '/api',
 })
 
 api.interceptors.request.use((config) => {
@@ -24,6 +30,25 @@ api.interceptors.request.use((config) => {
   }
   return config
 })
+
+api.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    if (!isAxiosError(error)) {
+      return Promise.reject(
+        new ApiError('Something went wrong. Please try again.', 500),
+      )
+    }
+
+    const status = error.response?.status ?? 500
+    const message =
+      (error.response?.data as { message?: string } | undefined)?.message ??
+      error.message ??
+      'Something went wrong. Please try again.'
+
+    return Promise.reject(new ApiError(message, status))
+  },
+)
 
 export function getAuthToken(): string | null {
   return localStorage.getItem(TOKEN_STORAGE_KEY)
@@ -47,10 +72,4 @@ export function getErrorMessage(error: unknown): string {
     return error.message
   }
   return 'Something went wrong. Please try again.'
-}
-
-export function delay(ms = 400): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms)
-  })
 }
