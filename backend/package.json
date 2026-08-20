@@ -4,7 +4,7 @@
   "description": "TaskFlow API",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "nodemon",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js"
   },
@@ -33,6 +33,7 @@
     "@types/multer": "^2",
     "@types/node": "^26.2.0",
     "tsx": "^4.23.12",
+    "nodemon": "^3.1.11",
     "typescript": "5.8.3"
   }
 }

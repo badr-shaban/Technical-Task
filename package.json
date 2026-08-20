@@ -1,0 +1,13 @@
+{
+  "name": "taskflow",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c cyan,magenta \"yarn --cwd backend dev\" \"yarn --cwd frontend dev\"",
+    "dev:backend": "yarn --cwd backend dev",
+    "dev:frontend": "yarn --cwd frontend dev",
+    "postinstall": "yarn --cwd backend install && yarn --cwd frontend install"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}
