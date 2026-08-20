@@ -326,6 +326,42 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@dnd-kit/accessibility@npm:^3.1.1":
+  version: 3.1.1
+  resolution: "@dnd-kit/accessibility@npm:3.1.1"
+  dependencies:
+    tslib: "npm:^2.0.0"
+  peerDependencies:
+    react: ">=16.8.0"
+  checksum: 10c0/be0bf41716dc58f9386bc36906ec1ce72b7b42b6d1d0e631d347afe9bd8714a829bd6f58a346dd089b1519e93918ae2f94497411a61a4f5e4d9247c6cfd1fef8
+  languageName: node
+  linkType: hard
+
+"@dnd-kit/core@npm:^6.3.1":
+  version: 6.3.1
+  resolution: "@dnd-kit/core@npm:6.3.1"
+  dependencies:
+    "@dnd-kit/accessibility": "npm:^3.1.1"
+    "@dnd-kit/utilities": "npm:^3.2.2"
+    tslib: "npm:^2.0.0"
+  peerDependencies:
+    react: ">=16.8.0"
+    react-dom: ">=16.8.0"
+  checksum: 10c0/196db95d81096d9dc248983533eab91ba83591770fa5c894b1ac776f42af0d99522b3fd5bb3923411470e4733fcfa103e6ee17adc17b9b7eb54c7fbec5ff7c52
+  languageName: node
+  linkType: hard
+
+"@dnd-kit/utilities@npm:^3.2.2":
+  version: 3.2.2
+  resolution: "@dnd-kit/utilities@npm:3.2.2"
+  dependencies:
+    tslib: "npm:^2.0.0"
+  peerDependencies:
+    react: ">=16.8.0"
+  checksum: 10c0/9aa90526f3e3fd567b5acc1b625a63177b9e8d00e7e50b2bd0e08fa2bf4dba7e19529777e001fdb8f89a7ce69f30b190c8364d390212634e0afdfa8c395e85a0
+  languageName: node
+  linkType: hard
+
 "@dotenvx/dotenvx@npm:^1.48.4":
   version: 1.75.1
   resolution: "@dotenvx/dotenvx@npm:1.75.1"
@@ -2365,6 +2401,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tanstack/query-core@npm:5.101.4":
+  version: 5.101.4
+  resolution: "@tanstack/query-core@npm:5.101.4"
+  checksum: 10c0/a407960303431e6498c6518cf6f8cc7283d3e4a95dbdc5e9fa42c217b9dd7afaffb82a4f2d36b38f578f745e8cf69ff8551abb947f5abcc0a290f3e3e75dc654
+  languageName: node
+  linkType: hard
+
+"@tanstack/react-query@npm:^5.101.4":
+  version: 5.101.4
+  resolution: "@tanstack/react-query@npm:5.101.4"
+  dependencies:
+    "@tanstack/query-core": "npm:5.101.4"
+  peerDependencies:
+    react: ^18 || ^19
+  checksum: 10c0/92e7c5b44740e753b05a6a19c166ea1a000df64c1bf5edb315d08a5b555a9f16a9d35288ac38f650bd38fc3015b135c392749fd6db24d09db42bfaf758d119fa
+  languageName: node
+  linkType: hard
+
 "@ts-morph/common@npm:~0.27.0":
   version: 0.27.0
   resolution: "@ts-morph/common@npm:0.27.0"
@@ -3798,10 +3852,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "frontend@workspace:."
   dependencies:
+    "@dnd-kit/core": "npm:^6.3.1"
+    "@dnd-kit/utilities": "npm:^3.2.2"
     "@eslint/js": "npm:^10.0.1"
     "@fontsource-variable/geist": "npm:^5.3.0"
     "@hookform/resolvers": "npm:^5.9.1"
     "@tailwindcss/vite": "npm:^4.3.3"
+    "@tanstack/react-query": "npm:^5.101.4"
     "@types/node": "npm:^24.13.3"
     "@types/react": "npm:^19.2.17"
     "@types/react-dom": "npm:^19.2.3"

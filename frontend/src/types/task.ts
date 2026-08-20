@@ -44,6 +44,7 @@ export interface TaskFilters {
 }
 
 export const TASK_PAGE_SIZE = 6
+export const BOARD_PAGE_SIZE = 50
 export const MAX_TASK_ATTACHMENTS = 10
 export const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024
 export const ALLOWED_ATTACHMENT_ACCEPT =

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { PublicRoute } from '@/components/layout/PublicRoute'
+import { Board } from '@/pages/Board'
 import { Dashboard } from '@/pages/Dashboard'
 import { Login } from '@/pages/Login'
 import { Register } from '@/pages/Register'
@@ -17,6 +18,7 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/board" element={<Board />} />
         </Route>
       </Route>
 

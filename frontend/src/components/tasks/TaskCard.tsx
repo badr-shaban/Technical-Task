@@ -42,9 +42,17 @@ interface TaskCardProps {
   task: Task
   onEdit: (task: Task) => void
   onDelete: (task: Task) => Promise<void>
+  hideStatus?: boolean
+  className?: string
 }
 
-export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
+export function TaskCard({
+  task,
+  onEdit,
+  onDelete,
+  hideStatus = false,
+  className,
+}: TaskCardProps) {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const snippet =
@@ -64,7 +72,7 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
 
   return (
     <>
-      <Card className="h-full">
+      <Card className={cn('h-full', className)}>
         <CardHeader>
           <CardTitle className="pr-16">{task.title}</CardTitle>
           <CardAction className="flex gap-1">
@@ -88,9 +96,11 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
           <CardDescription>{snippet}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Badge className={cn(statusStyles[task.status])}>
-            {TASK_STATUS_LABELS[task.status]}
-          </Badge>
+          {!hideStatus && (
+            <Badge className={cn(statusStyles[task.status])}>
+              {TASK_STATUS_LABELS[task.status]}
+            </Badge>
+          )}
           <Badge className={cn(priorityStyles[task.priority])}>
             {TASK_PRIORITY_LABELS[task.priority]}
           </Badge>

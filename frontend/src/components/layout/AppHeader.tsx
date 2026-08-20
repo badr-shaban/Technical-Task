@@ -1,5 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom'
-import { CheckSquareIcon, LogOutIcon } from 'lucide-react'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { CheckSquareIcon, Columns3Icon, LayoutGridIcon, LogOutIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { getErrorMessage } from '@/services/api'
@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
 
 function getInitials(name: string): string {
   return name
@@ -21,6 +22,15 @@ function getInitials(name: string): string {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('')
+}
+
+function navClassName({ isActive }: { isActive: boolean }) {
+  return cn(
+    'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors',
+    isActive
+      ? 'bg-accent font-medium text-accent-foreground'
+      : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
+  )
 }
 
 export function AppHeader() {
@@ -39,13 +49,28 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-3 px-4">
-        <Link to="/" className="flex items-center gap-2 font-medium">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <CheckSquareIcon className="size-4" />
-          </span>
-          <span className="text-sm sm:text-base">TaskFlow</span>
-        </Link>
+      <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-3 px-4">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-5">
+          <Link to="/" className="flex items-center gap-2 font-medium">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <CheckSquareIcon className="size-4" />
+            </span>
+            <span className="text-sm sm:text-base">TaskFlow</span>
+          </Link>
+
+          {user && (
+            <nav className="flex items-center gap-1">
+              <NavLink to="/" end className={navClassName}>
+                <LayoutGridIcon className="size-4" />
+                <span className="hidden sm:inline">Dashboard</span>
+              </NavLink>
+              <NavLink to="/board" className={navClassName}>
+                <Columns3Icon className="size-4" />
+                <span className="hidden sm:inline">Board</span>
+              </NavLink>
+            </nav>
+          )}
+        </div>
 
         {user && (
           <DropdownMenu>

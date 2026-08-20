@@ -1,16 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react'
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { LoginPayload, RegisterPayload, User } from '@/types/auth'
-import { clearSession, getAuthToken, USER_STORAGE_KEY, ApiError } from '@/services/api'
+import { ApiError, clearSession, getAuthToken, USER_STORAGE_KEY } from '@/services/api'
 import * as authService from '@/services/authService'
+import { authKeys, taskKeys } from '@/lib/queryKeys'
 
 interface AuthContextValue {
   user: User | null
@@ -36,78 +30,71 @@ function readStoredUser(): User | null {
   }
 }
 
-function getInitialUser(): User | null {
-  return getAuthToken() ? readStoredUser() : null
+async function fetchCurrentUser(): Promise<User> {
+  try {
+    return await authService.getMe()
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      clearSession()
+    }
+    throw error
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(getInitialUser)
-  const [isLoading, setIsLoading] = useState(() => Boolean(getAuthToken()))
+  const queryClient = useQueryClient()
+  const hasToken = Boolean(getAuthToken())
+  const storedUser = useMemo(
+    () => (hasToken ? readStoredUser() ?? undefined : undefined),
+    [hasToken],
+  )
 
-  useEffect(() => {
-    const token = getAuthToken()
-    if (!token) {
-      return
-    }
+  const meQuery = useQuery({
+    queryKey: authKeys.me,
+    queryFn: fetchCurrentUser,
+    enabled: hasToken,
+    initialData: storedUser,
+    staleTime: 0,
+    retry: false,
+  })
 
-    let cancelled = false
+  const user =
+    meQuery.error instanceof ApiError && meQuery.error.status === 401
+      ? null
+      : (meQuery.data ?? null)
 
-    authService
-      .getMe()
-      .then((currentUser) => {
-        if (!cancelled) {
-          setUser(currentUser)
-        }
-      })
-      .catch((error: unknown) => {
-        if (error instanceof ApiError && error.status === 401) {
-          clearSession()
-          if (!cancelled) {
-            setUser(null)
-          }
-          return
-        }
+  const login = useCallback(
+    async (payload: LoginPayload) => {
+      const response = await authService.login(payload)
+      queryClient.setQueryData(authKeys.me, response.user)
+    },
+    [queryClient],
+  )
 
-        if (!cancelled) {
-          setUser(readStoredUser())
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const login = useCallback(async (payload: LoginPayload) => {
-    const response = await authService.login(payload)
-    setUser(response.user)
-  }, [])
-
-  const register = useCallback(async (payload: RegisterPayload) => {
-    const response = await authService.register(payload)
-    setUser(response.user)
-  }, [])
+  const register = useCallback(
+    async (payload: RegisterPayload) => {
+      const response = await authService.register(payload)
+      queryClient.setQueryData(authKeys.me, response.user)
+    },
+    [queryClient],
+  )
 
   const logout = useCallback(async () => {
     await authService.logout()
-    setUser(null)
-  }, [])
+    queryClient.removeQueries({ queryKey: authKeys.all })
+    queryClient.removeQueries({ queryKey: taskKeys.all })
+  }, [queryClient])
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       isAuthenticated: Boolean(user),
-      isLoading,
+      isLoading: meQuery.isLoading && hasToken,
       login,
       register,
       logout,
     }),
-    [user, isLoading, login, register, logout],
+    [user, meQuery.isLoading, hasToken, login, register, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

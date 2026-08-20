@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   CreateTaskInput,
-  PaginationMeta,
-  Task,
+  PaginatedTasks,
   TaskPriority,
   TaskStatus,
   UpdateTaskInput,
@@ -10,24 +10,27 @@ import type {
 import { TASK_PAGE_SIZE } from '@/types/task'
 import { getErrorMessage } from '@/services/api'
 import * as taskService from '@/services/taskService'
+import { taskKeys } from '@/lib/queryKeys'
 
-const emptyPagination: PaginationMeta = {
-  page: 1,
-  limit: TASK_PAGE_SIZE,
-  total: 0,
-  totalPages: 1,
+interface UseTasksOptions {
+  pageSize?: number
 }
 
-export function useTasks() {
+export function useTasks({ pageSize = TASK_PAGE_SIZE }: UseTasksOptions = {}) {
+  const queryClient = useQueryClient()
   const [search, setSearchValue] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [status, setStatusValue] = useState<TaskStatus | 'all'>('all')
   const [priority, setPriorityValue] = useState<TaskPriority | 'all'>('all')
   const [page, setPage] = useState(1)
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [pagination, setPagination] = useState<PaginationMeta>(emptyPagination)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+
+  const filters = {
+    search: debouncedSearch,
+    status,
+    priority,
+    page,
+    limit: pageSize,
+  }
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -59,101 +62,116 @@ export function useTasks() {
     setPage(1)
   }, [])
 
-  const refresh = useCallback(
-    async (showLoading = false) => {
-      if (showLoading) {
-        setLoading(true)
-      }
-      setError(null)
+  const tasksQuery = useQuery({
+    queryKey: taskKeys.list(filters),
+    queryFn: () => taskService.getTasks(filters),
+    placeholderData: keepPreviousData,
+  })
 
-      try {
-        const result = await taskService.getTasks({
-          search: debouncedSearch,
-          status,
-          priority,
-          page,
-          limit: TASK_PAGE_SIZE,
-        })
-        setTasks(result.tasks)
-        setPagination(result.pagination)
-      } catch (caught) {
-        setError(getErrorMessage(caught))
-      } finally {
-        setLoading(false)
-      }
-    },
-    [debouncedSearch, status, priority, page],
+  const pagination = tasksQuery.data?.pagination ?? {
+    page: 1,
+    limit: pageSize,
+    total: 0,
+    totalPages: 1,
+  }
+  if (tasksQuery.isSuccess && page > pagination.totalPages) {
+    setPage(Math.max(1, pagination.totalPages))
+  }
+
+  const invalidateTasks = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: taskKeys.all }),
+    [queryClient],
   )
 
-  useEffect(() => {
-    let cancelled = false
+  const createMutation = useMutation({
+    mutationFn: (input: CreateTaskInput) => taskService.createTask(input),
+    onSuccess: () => invalidateTasks(),
+  })
 
-    taskService
-      .getTasks({
-        search: debouncedSearch,
-        status,
-        priority,
-        page,
-        limit: TASK_PAGE_SIZE,
-      })
-      .then((result) => {
-        if (cancelled) {
-          return
-        }
+  const updateMutation = useMutation({
+    mutationFn: ({ taskId, input }: { taskId: string; input: UpdateTaskInput }) =>
+      taskService.updateTask(taskId, input),
+    onSuccess: () => invalidateTasks(),
+  })
 
-        if (page > result.pagination.totalPages && result.pagination.total > 0) {
-          setPage(result.pagination.totalPages)
-          return
-        }
+  const deleteMutation = useMutation({
+    mutationFn: (taskId: string) => taskService.deleteTask(taskId),
+    onSuccess: () => invalidateTasks(),
+  })
 
-        setTasks(result.tasks)
-        setPagination(result.pagination)
-        setError(null)
-        setLoading(false)
-      })
-      .catch((caught: unknown) => {
-        if (!cancelled) {
-          setError(getErrorMessage(caught))
-          setLoading(false)
-        }
+  const moveStatusMutation = useMutation({
+    mutationFn: ({ taskId, status }: { taskId: string; status: TaskStatus }) =>
+      taskService.updateTask(taskId, { status }),
+    onMutate: async ({ taskId, status }) => {
+      await queryClient.cancelQueries({ queryKey: taskKeys.all })
+      const previous = queryClient.getQueriesData<PaginatedTasks>({
+        queryKey: taskKeys.lists(),
       })
 
-    return () => {
-      cancelled = true
+      queryClient.setQueriesData<PaginatedTasks>(
+        { queryKey: taskKeys.lists() },
+        (current) => {
+          if (!current) {
+            return current
+          }
+
+          return {
+            ...current,
+            tasks: current.tasks.map((task) =>
+              task.id === taskId ? { ...task, status } : task,
+            ),
+          }
+        },
+      )
+
+      return { previous }
+    },
+    onError: (_error, _variables, context) => {
+      context?.previous.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data)
+      })
+    },
+    onSettled: () => {
+      void invalidateTasks()
+    },
+  })
+
+  const refresh = useCallback(async (showLoading = false) => {
+    if (showLoading) {
+      await queryClient.resetQueries({ queryKey: taskKeys.all })
+      return
     }
-  }, [debouncedSearch, status, priority, page])
+
+    await queryClient.invalidateQueries({ queryKey: taskKeys.all })
+  }, [queryClient])
 
   const createTask = useCallback(
-    async (input: CreateTaskInput) => {
-      const task = await taskService.createTask(input)
-      await refresh()
-      return task
-    },
-    [refresh],
+    (input: CreateTaskInput) => createMutation.mutateAsync(input),
+    [createMutation],
   )
 
   const updateTask = useCallback(
-    async (taskId: string, input: UpdateTaskInput) => {
-      const task = await taskService.updateTask(taskId, input)
-      await refresh()
-      return task
-    },
-    [refresh],
+    (taskId: string, input: UpdateTaskInput) =>
+      updateMutation.mutateAsync({ taskId, input }),
+    [updateMutation],
   )
 
   const deleteTask = useCallback(
-    async (taskId: string) => {
-      await taskService.deleteTask(taskId)
-      await refresh()
-    },
-    [refresh],
+    (taskId: string) => deleteMutation.mutateAsync(taskId),
+    [deleteMutation],
+  )
+
+  const moveTaskStatus = useCallback(
+    (taskId: string, nextStatus: TaskStatus) =>
+      moveStatusMutation.mutateAsync({ taskId, status: nextStatus }),
+    [moveStatusMutation],
   )
 
   return {
-    tasks,
+    tasks: tasksQuery.data?.tasks ?? [],
     pagination,
-    loading,
-    error,
+    loading: tasksQuery.isLoading,
+    error: tasksQuery.error ? getErrorMessage(tasksQuery.error) : null,
     search,
     status,
     priority,
@@ -166,5 +184,6 @@ export function useTasks() {
     createTask,
     updateTask,
     deleteTask,
+    moveTaskStatus,
   }
 }
